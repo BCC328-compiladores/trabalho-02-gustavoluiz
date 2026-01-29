@@ -30,6 +30,16 @@ RUN apt-get update && apt-get install -y \
     qemu-system-riscv64 \
     && rm -rf /var/lib/apt/lists/*
 
+# Install LaTeX (pdflatex + Portuguese support)
+RUN apt-get update && apt-get install -y \
+    texlive-latex-base \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    texlive-lang-portuguese \
+    latexmk \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install GHCup (Haskell toolchain installer)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
 

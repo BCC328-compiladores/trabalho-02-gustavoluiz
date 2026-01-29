@@ -1,0 +1,47 @@
+cabal-version:      3.0
+name:               sl-compiler
+version:            0.1.0.0
+synopsis:           SL compiler
+category:           Language
+build-type:         Simple
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Luiz/Gustavo
+maintainer:         n
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    hs-source-dirs:   src
+    
+    exposed-modules:  Lexer
+                      Tokens
+                      AST    
+                      Parser 
+                      Pretty
+                      TreeUtils 
+
+    build-depends:    base >= 4.14 && <5
+                    , array
+                    , containers
+                    , pretty
+    
+    default-language: Haskell2010
+    build-tool-depends: alex:alex, happy:happy
+
+-- O EXECUTÁVEL (Interface de Linha de Comando)
+executable sl-compiler
+    import:           warnings
+    main-is:          Main.hs
+    
+    hs-source-dirs:   app
+    
+    build-depends:    base >= 4.14 && <5
+                    , sl-compiler
+                    , array
+                    , containers   
+    
+    default-language: Haskell2010

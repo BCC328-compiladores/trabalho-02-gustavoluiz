@@ -1,0 +1,12 @@
+docker-compose up -d
+docker exec -it sl-assignment /bin/bash
+alex src/Lexer.x
+happy src/Parser.y
+cabal build
+cabal run sl-compiler -- --lexer src/tests/test1.sl
+teste 1: cabal run sl-compiler -- --parser src/tests/test1.sl
+teste 2: cabal run sl-compiler -- --parser src/tests/test2_structs.sl
+teste 3: cabal run sl-compiler -- --parser src/tests/test3_arrays.sl
+teste 4: cabal run sl-compiler -- --parser src/tests/test4_generics.sl
+teste 5: cabal run sl-compiler -- --parser src/tests/test5_comments.sl
+teste 6: cabal run sl-compiler -- --parser src/tests/test6_multcomm.sl

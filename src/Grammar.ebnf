@@ -1,0 +1,166 @@
+(* ===================================================== *)
+(*              GRAMÁTICA DA LINGUAGEM SL                *)
+(* ===================================================== *)
+
+(*um programa é uma sequência de declarações de topo (TopDecl)
+ TopDecl define o que pode aparecer no nível superior:
+ uma função, uma struct, uma declaração global (variável)*)
+
+Program         ::= TopDecl* ;
+
+TopDecl         ::= FuncDecl
+                  | StructDecl
+                  | GlobalDecl ;
+
+(* ----------------------------------------------------- *)
+(* DECLARAÇÕES                                           *)
+(* ----------------------------------------------------- *)
+
+(*uma função pode começar com uma quantificação de tipos (forall - funções genéricas)
+seguido da palavra func, o nome da função e a lista de parâmetros entre parênteses*
+o tipo de retorno (opcional), o corpo da função Block (um bloco de código) *)
+FuncDecl        ::= [ForallDecl] "func" Identifier "(" [ParamList] ")" [":" Type] Block ;
+
+ForallDecl      ::= "forall" TypeParamList "." ;
+
+TypeParamList   ::= Identifier {Identifier} ;
+
+ParamList       ::= Param {"," Param} ;
+
+Param           ::= Identifier ":" Type ;
+
+(*uma declaração de stuct começa com a palavra struct, seguido de um identificador,
+um corpo delimitado por {} e dentro há a declaração dos campos (Identifier : Type)*)
+StructDecl      ::= "struct" Identifier "{" {FieldDecl} "}" ;
+
+FieldDecl       ::= Identifier ":" Type ";" ;
+
+GlobalDecl      ::= "let" Identifier ":" Type "=" Expr ";" ;
+
+(* ----------------------------------------------------- *)
+(* TIPOS                                                 *)
+(* ----------------------------------------------------- *)
+
+Type            ::= SimpleType
+                  | ArrayType
+                  | GenericType ;
+
+SimpleType      ::= "int" | "float" | "string" | "bool" | "void" | Identifier ;
+
+(* Tipo de array. Pode ser dinâmico (int[]) ou fixo (int[5]). *)
+ArrayType       ::= Type "[" [IntegerLiteral] "]" ;
+
+(* Tipo genérico, ex: List<int> ou Map<string,int>. *)
+GenericType     ::= Identifier "<" Type {"," Type} ">" ;
+
+(* ----------------------------------------------------- *)
+(* BLOCOS E COMANDOS                                     *)
+(* ----------------------------------------------------- *)
+
+(* Um bloco é uma sequência de comandos entre chaves. *)
+Block           ::= "{" {Statement} "}" ;
+
+(* Comandos possíveis: declaração, expressão, controle de fluxo, retorno,. *)
+Statement       ::= VarDecl
+                  | ExprStmt
+                  | ReturnStmt
+                  | IfStmt
+                  | WhileStmt
+                  | ForStmt
+                  | Block ;
+
+(* Declaração de variável local dentro de blocos ou funções. *)
+VarDecl         ::= "let" Identifier ":" Type "=" Expr ";" ;
+
+(* Expressão seguida de ponto-e-vírgula (ex: chamada de função). *)
+ExprStmt        ::= Expr ";" ;
+
+(* Comando de retorno de função (com ou sem expressão). *)
+ReturnStmt      ::= "return" [Expr] ";" ;
+
+IfStmt          ::= "if" "(" Expr ")" Statement ["else" Statement] ;
+
+WhileStmt       ::= "while" "(" Expr ")" Statement ;
+
+(* Estrutura de repetição for *)
+ForStmt         ::= "for" "(" [ForInit] ";" [ForCond] ";" [ForPost] ")" Statement ;
+
+(* Elementos internos do laço for: inicialização, condição e incremento. *)
+ForInit         ::= VarDeclNoSemi | Expr ;
+VarDeclNoSemi   ::= "let" Identifier ":" Type "=" Expr ;
+
+ForCond         ::= Expr ;
+ForPost         ::= Expr ;
+
+(* ----------------------------------------------------- *)
+(* EXPRESSÕES                                            *)
+(* ----------------------------------------------------- *)
+
+(* Expressão geral. Inicia pelo nível mais baixo de precedência (Assignment). *)
+Expr            ::= Assignment ;
+
+(* Atribuição: variável = expressão. *)
+Assignment      ::= OrExpr ["=" Assignment] ;
+
+(* Expressões lógicas e relacionais, com operadores binários encadeáveis. *)
+OrExpr          ::= AndExpr {"||" AndExpr} ;
+AndExpr         ::= Equality {"&&" Equality} ;
+Equality        ::= Relational {("==" | "!=") Relational} ;
+Relational      ::= AddExpr {("<" | ">" | "<=" | ">=") AddExpr} ;
+
+(* Expressões aritméticas com precedência definida. *)
+AddExpr         ::= MulExpr {("+" | "-") MulExpr} ;
+MulExpr         ::= UnaryExpr {("*" | "/" | "%") UnaryExpr} ;
+
+(* Expressões unárias: negação lógica ou aritmética. *)
+UnaryExpr       ::= ("!" | "-") UnaryExpr | Postfix ;
+
+(* Expressões pós-fixas: chamadas, acesso de campo, indexação. *)
+Postfix         ::= Primary {PostOp} ;
+
+(* Operações pós-fixas encadeáveis. *)
+PostOp          ::= "[" Expr "]"    (* acesso de array, ex: arr[i] *)
+                | "." Identifier     (* acesso de campo, ex: obj.field *)
+                | "(" [ArgList] ")" ;  (* chamada de função, ex: f(x,y) *)
+
+(* Valores primários: literais, identificadores, parênteses, inicializações. *)
+Primary         ::= Literal
+                  | Identifier
+                  | "(" Expr ")"
+                  | ArrayLiteral
+                  | StructInit ;
+
+(* Lista de argumentos de função. *)
+ArgList         ::= Expr {"," Expr} ;
+
+(* Inicialização de array. *)
+ArrayLiteral    ::= "[" [Expr {"," Expr}] "]" ;
+
+(* Inicialização de struct. *)
+StructInit      ::= Identifier "{" [ExprList] "}" ;
+
+(* Lista de expressões, usada em inicializações. *)
+ExprList        ::= Expr {"," Expr} ;
+
+(* ----------------------------------------------------- *)
+(* LITERAIS                                              *)
+(* ----------------------------------------------------- *)
+
+Literal         ::= IntegerLiteral
+                  | FloatLiteral
+                  | StringLiteral
+                  | BoolLiteral ;
+
+IntegerLiteral  ::= Digit {Digit} ;
+FloatLiteral    ::= Digit {Digit} "." Digit {Digit} ;
+StringLiteral   ::= '"' {Char} '"' ;
+BoolLiteral     ::= "true" | "false" ;
+
+Digit           ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+(* ----------------------------------------------------- *)
+(* FIM DA GRAMÁTICA                                      *)
+(* ----------------------------------------------------- *)
+
+(* forma modular e hierárquica da GRAMÁTICA *)
+(* Program -> Decl -> Statement -> Expr -> Literal *)
