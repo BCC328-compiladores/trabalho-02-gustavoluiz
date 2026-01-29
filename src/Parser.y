@@ -153,7 +153,9 @@ Stmts : Stmt Stmts      { $1 : $2 }
       | {- empty -}     { [] }
 
 Stmt : let id Type '=' Expr ';'           { VarDecl $2 $3 (Just $5) }
+     | let id ':' Type '=' Expr ';'       { VarDecl $2 $4 (Just $6) } -- NOVA REGRA
      | let id Type ';'                    { VarDecl $2 $3 Nothing }
+     | let id ':' Type ';'                { VarDecl $2 $4 Nothing }   -- NOVA REGRA
      -- Array sugar: let x int[10]; -> new int[10]
      | let id Type '[' intLit ']' ';'     { VarDecl $2 (TyArray $3) (Just (New $3 (LitInt $5))) }
      -- Array sugar with init: let x int[3] = [...];
