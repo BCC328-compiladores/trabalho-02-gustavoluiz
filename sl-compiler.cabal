@@ -22,12 +22,14 @@ library
                       AST    
                       Parser 
                       Pretty
-                      TreeUtils 
+                      TreeUtils
+                      TypeChecker 
 
     build-depends:    base >= 4.14 && <5
                     , array
                     , containers
                     , pretty
+                    , mtl
     
     default-language: Haskell2010
     build-tool-depends: alex:alex, happy:happy
