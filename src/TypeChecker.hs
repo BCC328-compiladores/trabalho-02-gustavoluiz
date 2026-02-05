@@ -173,15 +173,21 @@ checkExpr expr = case expr of
                     Nothing -> throwError $ "Campo '" ++ fieldName ++ "' nao existe na struct '" ++ sName ++ "'"
             _ -> throwError "Tentativa de acessar campo em algo que nao eh uma struct"
 
-    -- Alocação de Array: new int[10]
+    -- Alocação (New): Arrays e Structs
     New typeVar sizeExpr -> do
         typeSize <- checkExpr sizeExpr
+
         if typeSize /= TyInt
-            then throwError "Tamanho do array deve ser do tipo Int"
-            else return (TyArray typeVar)
+            then throwError "Tamanho/Dimensão deve ser do tipo Int"
+            else case (typeVar, sizeExpr) of
+                -- 1. Instanciação de Struct (Ex: new Ponto)
+                -- O Parser envia LitInt 0 como tamanho "dummy" para structs
+                (TyCustom _, LitInt 0) -> return typeVar
+
+                -- 2. Alocação de Array (Ex: new int[10] ou new Ponto[5])
+                _ -> return (TyArray typeVar)
 
     -- CATCH-ALL (DEVE SER O ÚLTIMO SEMPRE)
-    -- Este caso pega qualquer coisa que não foi tratada acima.
     _ -> throwError $ "Expressao ainda nao implementada ou invalida: " ++ show expr
 
 

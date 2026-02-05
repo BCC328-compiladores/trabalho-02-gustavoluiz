@@ -23,7 +23,8 @@ library
                       Parser 
                       Pretty
                       TreeUtils
-                      TypeChecker 
+                      TypeChecker
+                      Interpreter 
 
     build-depends:    base >= 4.14 && <5
                     , array

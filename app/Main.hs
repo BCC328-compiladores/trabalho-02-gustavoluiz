@@ -13,8 +13,11 @@ import Pretty (prettyPrint)
 import Data.Tree (drawTree)
 import TreeUtils (astToTree)
 
--- NOVO: Importação do Analisador Semântico
+-- Importação do Analisador Semântico
 import TypeChecker (runTypeCheck)
+
+-- Importação do Interpretador
+import Interpreter (interpret)
 
 -- A função principal
 main :: IO ()
@@ -49,16 +52,14 @@ main = do
                     let ast = parse tokens
                     putStrLn (prettyPrint ast)
 
-        -- NOVO: MODO 4: Análise Semântica (--check)
+        -- MODO 4: Análise Semântica (--check)
         ["--check", fileName] -> do
             source <- readUtf8File fileName
             case runLexer source of
                 Left err -> putStrLn $ "Erro Léxico: " ++ err
                 Right tokens -> do
-                    -- 1. Gera a AST
                     let ast = parse tokens
                     
-                    -- 2. Roda a Verificação Semântica
                     case runTypeCheck ast of
                         Left err -> do
                             putStrLn "\n❌ ERRO SEMÂNTICO ENCONTRADO:"
@@ -68,11 +69,37 @@ main = do
                             putStrLn "\n✅ SUCESSO:"
                             putStrLn "   O programa está semanticamente correto."
 
+        -- NOVO: MODO 5: Execução / Interpretador (--run ou apenas o nome do arquivo)
+        ["--run", fileName] -> runProgram fileName
+        [fileName]          -> runProgram fileName -- Executa por padrão se passar só o arquivo
+
         -- Caso padrão: Ajuda
         _ -> printUsage
 
 -- =============================================================================
--- FUNÇÕES AUXILIARES
+-- FUNÇÃO AUXILIAR DE EXECUÇÃO
+-- =============================================================================
+
+runProgram :: FilePath -> IO ()
+runProgram fileName = do
+    source <- readUtf8File fileName
+    case runLexer source of
+        Left err -> putStrLn $ "Erro Léxico: " ++ err
+        Right tokens -> do
+            let ast = parse tokens
+            
+            -- 1. Primeiro verifica os tipos
+            case runTypeCheck ast of
+                Left err -> do
+                    putStrLn "\n❌ ERRO SEMÂNTICO (Execução Abortada):"
+                    putStrLn $ "   " ++ err
+                    exitFailure
+                Right () -> do
+                    -- 2. Se não houver erros, executa!
+                    interpret ast
+
+-- =============================================================================
+-- OUTRAS AUXILIARES
 -- =============================================================================
 
 readUtf8File :: FilePath -> IO String
@@ -88,6 +115,8 @@ printUsage = do
     putStrLn "  sl-compiler --lexer <arquivo.sl>   : Exibe a lista de tokens"
     putStrLn "  sl-compiler --parser <arquivo.sl>  : Exibe a Árvore Sintática (AST)"
     putStrLn "  sl-compiler --pretty <arquivo.sl>  : Exibe o código formatado"
-    putStrLn "  sl-compiler --check <arquivo.sl>   : Verifica erros de tipos e escopo (NOVO)"
+    putStrLn "  sl-compiler --check <arquivo.sl>   : Verifica erros de tipos e escopo"
+    putStrLn "  sl-compiler --run <arquivo.sl>     : Executa o programa (Interpretador)"
+    putStrLn "  sl-compiler <arquivo.sl>           : Atalho para executar"
     putStrLn ""
     exitFailure
