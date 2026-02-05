@@ -76,6 +76,7 @@ import AST
 -- OPERATOR PRECEDENCE
 -- =============================================================================
 
+%nonassoc LOW
 %right '->'   -- baixa prioridade, associativadade direita
 %right '='
 %left '||'
@@ -216,6 +217,7 @@ Expr : intLit           { LitInt $1 }
      | Expr '.' id         { FieldAccess $1 $3 }
      | id '(' Args ')'     { Call $1 $3 }
      | new Type '[' Expr ']' { New $2 $4 }
+     | new Type %prec LOW             { New $2 (LitInt 0) }
      | '(' Expr ')'        { $2 }
 
 Args : ArgList          { $1 }
