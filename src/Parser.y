@@ -77,7 +77,7 @@ import AST
 -- =============================================================================
 
 %nonassoc LOW
-%right '->'   -- baixa prioridade, associativadade direita
+%right '->'   -- baixa prioridade, associatividade direita
 %right '='
 %left '||'
 %left '&&'
@@ -113,12 +113,22 @@ StructField : id Type ';'                { ($1, $2) }
             | id ':' Type ';'            { ($1, $3) }
 
 -- Functions
-FuncDecl : func id '(' Params ')' ':' Type Block 
-         { FuncDecl $2 [] $4 $7 $8 }
+-- Atualizado para suportar Generics: func identity<T>(...)
+FuncDecl : func id GenericsOpt '(' Params ')' ':' Type Block 
+         { FuncDecl $2 $3 $5 $8 $9 }
          
+         -- Regra alternativa antiga (forall) mantida por compatibilidade
          | forall GenVars func id '(' Params ')' ':' Type Block
          { FuncDecl $4 $2 $6 $9 $10 }
 
+-- Lista de Generics Opcionais: <T, U> ou vazio
+GenericsOpt : '<' GenParams '>'   { $2 }
+            | {- empty -}         { [] }
+
+GenParams : id ',' GenParams      { $1 : $3 }
+          | id                    { [$1] }
+
+-- Variaveis Genericas para a regra 'forall' (Removido acento para evitar erro do Happy)
 GenVars : id GenVars    { $1 : $2 }
         | id            { [$1] }
 
@@ -138,7 +148,7 @@ Type : int              { TyInt }
      | string           { TyString }
      | bool             { TyBool }
      | void             { TyVoid }
-     | id               { TyCustom $1 }
+     | id               { TyCustom $1 } -- Cobre Structs e Generics (T)
      | Type '[' ']'     { TyArray $1 }
      -- Function Type: (int, bool) -> void
      | '(' TypeList ')' '->' Type  { TyFunc $2 $5 }
@@ -154,9 +164,14 @@ Stmts : Stmt Stmts      { $1 : $2 }
       | {- empty -}     { [] }
 
 Stmt : let id Type '=' Expr ';'           { VarDecl $2 $3 (Just $5) }
-     | let id ':' Type '=' Expr ';'       { VarDecl $2 $4 (Just $6) } -- NOVA REGRA
+     | let id ':' Type '=' Expr ';'       { VarDecl $2 $4 (Just $6) } 
+     
+     -- NOVA REGRA: Inferencia de Tipo (sem tipo explicito)
+     | let id '=' Expr ';'                { VarDecl $2 TyAuto (Just $4) }
+     
      | let id Type ';'                    { VarDecl $2 $3 Nothing }
-     | let id ':' Type ';'                { VarDecl $2 $4 Nothing }   -- NOVA REGRA
+     | let id ':' Type ';'                { VarDecl $2 $4 Nothing }
+     
      -- Array sugar: let x int[10]; -> new int[10]
      | let id Type '[' intLit ']' ';'     { VarDecl $2 (TyArray $3) (Just (New $3 (LitInt $5))) }
      -- Array sugar with init: let x int[3] = [...];
@@ -167,7 +182,7 @@ Stmt : let id Type '=' Expr ';'           { VarDecl $2 $3 (Just $5) }
      | if '(' Expr ')' Block              { If $3 $5 Nothing }
      | while '(' Expr ')' Block           { While $3 $5 }
      
-     -- FOR Loop with special Step rule (no semicolon at end)
+     -- FOR Loop
      | for '(' OptStmt OptExpr ';' ForStep ')' Block { For $3 $4 $6 $8 }
      
      | print '(' Expr ')' ';'             { ExprStmt (Call "print" [$3]) } 
@@ -182,7 +197,7 @@ OptStmt : Stmt          { Just $1 }
 OptExpr : Expr          { Just $1 }
         | {- empty -}   { Nothing }
 
--- ForStep: Increment (i++) or Assignment (i = i + 1) without semicolon
+-- ForStep
 ForStep : id '++'       { Just (Assign (Var $1) (Binary Add (Var $1) (LitInt 1))) }
         | id '=' Expr   { Just (Assign (Var $1) $3) }
         | {- empty -}   { Nothing }
@@ -216,8 +231,10 @@ Expr : intLit           { LitInt $1 }
      | Expr '[' Expr ']'   { ArrayAccess $1 $3 }
      | Expr '.' id         { FieldAccess $1 $3 }
      | id '(' Args ')'     { Call $1 $3 }
+     
      | new Type '[' Expr ']' { New $2 $4 }
-     | new Type %prec LOW             { New $2 (LitInt 0) }
+     | new Type %prec LOW    { New $2 (LitInt 0) }
+     
      | '(' Expr ')'        { $2 }
 
 Args : ArgList          { $1 }

@@ -50,6 +50,8 @@ ppType (TyArray t) = ppType t <> text "[]"
 ppType (TyVar s) = text s
 ppType (TyFunc args ret) = 
     parens (hcat (punctuate comma (map ppType args))) <+> text "->" <+> ppType ret
+ppType (TyGeneric s) = text s        -- Imprime "T"
+ppType TyAuto        = text "auto"   -- Imprime "auto" (para debug)
 
 -- =============================================================================
 -- STATEMENTS & BLOCKS

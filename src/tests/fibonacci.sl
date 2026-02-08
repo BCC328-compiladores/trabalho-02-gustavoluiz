@@ -8,7 +8,7 @@ func fib(n: int): int {
 }
 
 func main(): void {
-    let n int = 10;
+    let n int = 8;
     let resultado int = 0;
     
     print("Calculando Fibonacci de:");

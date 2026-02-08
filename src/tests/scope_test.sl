@@ -16,8 +16,8 @@ func main(): void {
     }
 
     print("Fim (Global x restaurado?):");
-    print(x); // Esperado: 10 (se suportar shadowing) ou 20 (se for escopo único)
-              // O ideal em linguagens modernas é 10.
+    print(x); // Esperado: 10 
+              
 
     print("Valor de y modificado:");
     print(y); // Esperado: 99

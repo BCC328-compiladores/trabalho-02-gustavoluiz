@@ -11,6 +11,8 @@ data Type
     | TyString
     | TyVoid
     | TyCustom String       -- Ex: Person (nome de struct)
+    | TyGeneric String      -- NOVO: Ex: T, U (Generics)
+    | TyAuto                -- NOVO: Inferência (tipo omitido)
     | TyArray Type          -- Ex: int[]
     | TyVar String          -- Ex: 'a' em generics (forall a)
     | TyFunc [Type] Type  -- <--- NOVO: Tipo função (Lista de Args -> Retorno)

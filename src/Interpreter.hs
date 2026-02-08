@@ -3,7 +3,6 @@ module Interpreter where
 import AST
 import qualified Data.Map as Map
 import Control.Monad.State
--- O import explícito de liftIO foi removido pois StateT já lida com isso
 import Control.Monad (zipWithM_) 
 
 -- =============================================================================
@@ -40,6 +39,7 @@ initEnv decls = Env {
     funcs  = Map.fromList [ (getName d, d) | d <- decls, isFunc d ]
 }
   where
+    -- ATUALIZADO: FuncDecl agora tem 5 argumentos (incluindo generics)
     getName (FuncDecl name _ _ _ _) = name
     getName _ = ""
     isFunc (FuncDecl {}) = True
@@ -93,7 +93,7 @@ getVar name = do
 -- Helper para atualizar lista em índice específico (para Arrays)
 updateList :: [a] -> Int -> a -> [a]
 updateList [] _ _ = [] 
-updateList (_:xs) 0 val = val : xs -- Correção: usamos _ pois o valor antigo não importa
+updateList (_:xs) 0 val = val : xs 
 updateList (x:xs) i val = x : updateList xs (i - 1) val
 
 -- Helper para valor padrão na inicialização (New)
@@ -105,7 +105,9 @@ defaultVal TyString = VString ""
 defaultVal (TyArray _) = VNull 
 defaultVal (TyCustom _) = VNull
 defaultVal TyVoid = VVoid
-defaultVal _ = VNull -- Correção: Catch-all para TyVar, TyFunc, etc.
+defaultVal TyAuto = VNull     -- NOVO: Auto inicia como Null até ser atribuído
+defaultVal (TyGeneric _) = VNull -- NOVO: Generic inicia como Null
+defaultVal _ = VNull 
 
 -- =============================================================================
 -- 4. AVALIADOR DE EXPRESSÕES
@@ -135,6 +137,7 @@ evalExpr expr = case expr of
         argVals <- mapM evalExpr args
         env <- get
         case Map.lookup name (funcs env) of
+            -- ATUALIZADO: Ignoramos o 2º argumento (generics) com _
             Just (FuncDecl _ _ params _ block) -> do
                 pushScope
                 let paramNames = map fst params 
@@ -151,11 +154,9 @@ evalExpr expr = case expr of
         sizeVal <- evalExpr sizeExpr
         case (typeVar, sizeVal) of
             -- PRIORIDADE 1: Struct (new Ponto)
-            -- Se for um tipo Custom E o tamanho for 0 (nosso hack do Parser), é uma Struct.
             (TyCustom sName, VInt 0) -> return $ VStruct sName Map.empty
 
             -- PRIORIDADE 2: Array (new int[10] ou new Ponto[5])
-            -- Qualquer outro caso (primitive types ou tamanho > 0) é array.
             (_, VInt s) -> return $ VArray (replicate (fromIntegral s) (defaultVal typeVar))
             
             _ -> error "New com parametros invalidos"
@@ -177,7 +178,7 @@ evalExpr expr = case expr of
         case val of
             VStruct _ fields -> case Map.lookup fieldName fields of
                 Just v -> return v
-                Nothing -> return (VInt 0) -- Valor padrão ou erro
+                Nothing -> return (VInt 0) 
             _ -> error "Acesso de campo em nao-struct"
             
     _ -> error $ "Expressao nao implementada no interpretador: " ++ show expr
@@ -250,22 +251,21 @@ evalStmt stmt = case stmt of
             _ -> error "Atribuicao complexa nao implementada"
         return Next
 
-    -- If / Else (CORRIGIDO COM ESCOPO)
+    -- If / Else
     If cond blockTrue maybeBlockFalse -> do
         vCond <- evalExpr cond
         case vCond of
-            VBool True -> evalScopedBlock blockTrue -- Usa escopo isolado
+            VBool True -> evalScopedBlock blockTrue 
             VBool False -> case maybeBlockFalse of
-                Just blockFalse -> evalScopedBlock blockFalse -- Usa escopo isolado
+                Just blockFalse -> evalScopedBlock blockFalse
                 Nothing -> return Next
             _ -> error "If condicao nao eh bool"
 
-    -- While (CORRIGIDO COM ESCOPO)
+    -- While
     While cond block -> do
         vCond <- evalExpr cond
         case vCond of
             VBool True -> do
-                -- Executa o corpo do loop em um escopo novo a cada iteração
                 res <- evalScopedBlock block
                 case res of
                     Ret v -> return (Ret v) 
@@ -297,9 +297,9 @@ evalBlock (s:ss) = do
 
 evalScopedBlock :: [Stmt] -> Interp StmtResult
 evalScopedBlock stmts = do
-    pushScope       -- 1. Cria nova camada na pilha
+    pushScope       
     res <- evalBlock stmts
-    popScope        -- 2. Remove a camada (mesmo se houver Return)
+    popScope        
     return res
 
 -- =============================================================================
@@ -310,6 +310,7 @@ interpret :: Program -> IO ()
 interpret program = do
     let env = initEnv program
     case Map.lookup "main" (funcs env) of
+        -- ATUALIZADO: Compatível com o novo AST FuncDecl (5 argumentos)
         Just (FuncDecl _ _ _ _ block) -> do
             putStrLn "--- INICIANDO INTERPRETADOR ---"
             _ <- evalStateT (evalBlock block) env
