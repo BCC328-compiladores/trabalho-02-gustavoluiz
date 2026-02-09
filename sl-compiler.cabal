@@ -36,7 +36,6 @@ library
     default-language: Haskell2010
     build-tool-depends: alex:alex, happy:happy
 
--- O EXECUTÁVEL (Interface de Linha de Comando)
 executable sl-compiler
     import:           warnings
     main-is:          Main.hs
@@ -49,3 +48,21 @@ executable sl-compiler
                     , containers   
     
     default-language: Haskell2010
+
+-- NOVA SEÇÃO DE TESTES
+test-suite sl-tests
+    import:           warnings
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    
+    -- Diretório onde ficará o código Haskell do teste (crie a pasta 'test')
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    
+    -- Dependências necessárias para rodar os testes
+    build-depends:    base >= 4.14 && <5
+                    , sl-compiler
+                    , directory
+                    , filepath
+                    , containers
+                    , mtl

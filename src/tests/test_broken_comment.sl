@@ -1,3 +1,3 @@
-/* Este é um comentário que começa
-   mas nunca termina...
+/* este eh um comentario que comeca
+   mas nunca termin
    func main() { ... }
