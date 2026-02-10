@@ -205,12 +205,54 @@ evalExpr expr = case expr of
             
     _ -> error $ "Expressao nao implementada no interpretador: " ++ show expr
 
--- Helper que realiza a matemática real do Haskell
 evalBinary :: BinOp -> Value -> Value -> Interp Value
+
+--ARITMÉTICA INTEIRA
 evalBinary Add (VInt a) (VInt b) = return $ VInt (a + b)
--- ... (outros operadores omitidos para brevidade, lógica é a mesma)
+evalBinary Sub (VInt a) (VInt b) = return $ VInt (a - b)
+evalBinary Mul (VInt a) (VInt b) = return $ VInt (a * b)
+evalBinary Div (VInt a) (VInt b) = if b == 0 
+                                   then error "Erro de execucao: Divisao por zero inteira"
+                                   else return $ VInt (a `div` b)
+evalBinary Mod (VInt a) (VInt b) = return $ VInt (a `mod` b)
+
+--COMPARAÇÃO INTEIRA
 evalBinary Eq  (VInt a) (VInt b) = return $ VBool (a == b)
-evalBinary _ _ _ = error "Operacao invalida em tempo de execucao"
+evalBinary Neq (VInt a) (VInt b) = return $ VBool (a /= b)
+evalBinary Lt  (VInt a) (VInt b) = return $ VBool (a < b)
+evalBinary Gt  (VInt a) (VInt b) = return $ VBool (a > b)
+evalBinary Le  (VInt a) (VInt b) = return $ VBool (a <= b)
+evalBinary Ge  (VInt a) (VInt b) = return $ VBool (a >= b)
+
+--ARITMÉTICA FLOAT
+evalBinary Add (VFloat a) (VFloat b) = return $ VFloat (a + b)
+evalBinary Sub (VFloat a) (VFloat b) = return $ VFloat (a - b)
+evalBinary Mul (VFloat a) (VFloat b) = return $ VFloat (a * b)
+evalBinary Div (VFloat a) (VFloat b) = return $ VFloat (a / b)
+
+--COMPARAÇÃO FLOAT
+evalBinary Eq  (VFloat a) (VFloat b) = return $ VBool (a == b)
+evalBinary Neq (VFloat a) (VFloat b) = return $ VBool (a /= b)
+evalBinary Lt  (VFloat a) (VFloat b) = return $ VBool (a < b)
+evalBinary Gt  (VFloat a) (VFloat b) = return $ VBool (a > b)
+evalBinary Le  (VFloat a) (VFloat b) = return $ VBool (a <= b)
+evalBinary Ge  (VFloat a) (VFloat b) = return $ VBool (a >= b)
+
+--LÓGICA BOOLEANA
+evalBinary And (VBool a) (VBool b) = return $ VBool (a && b)
+evalBinary Or  (VBool a) (VBool b) = return $ VBool (a || b)
+evalBinary Eq  (VBool a) (VBool b) = return $ VBool (a == b)
+evalBinary Neq (VBool a) (VBool b) = return $ VBool (a /= b)
+
+--STRINGS 
+evalBinary Add (VString a) (VString b) = return $ VString (a ++ b)
+evalBinary Eq  (VString a) (VString b) = return $ VBool (a == b)
+evalBinary Neq (VString a) (VString b) = return $ VBool (a /= b)
+
+-- Se cair aqui, mostraremos EXATAMENTE o que deu errado.
+-- Ex: "Gt entre VInt 30 e VFloat 25.0"
+evalBinary op v1 v2 = error $ "Erro de Execucao: Operacao binaria nao implementada ou tipos incompativeis: " 
+                            ++ show op ++ " entre " ++ show v1 ++ " e " ++ show v2
 
 printValue :: Value -> IO ()
 printValue (VInt i) = print i
