@@ -12,6 +12,9 @@ import qualified Data.Map as Map
 -- 1. ESTRUTURAS DE DADOS E AMBIENTE
 -- =============================================================================
 
+--Esta seção define a "memória" do compilador durante a verificação
+
+
 -- Guarda os tipos genéricos definidos (ex: ["T"]) e a assinatura da função
 data FuncScheme = FuncScheme {
     fsGenerics :: [String], -- Lista de variáveis de tipo (ex: T, U)
@@ -47,10 +50,13 @@ emptyEnv = Env {
 -- 2. MÓNADA DE VERIFICAÇÃO
 -- =============================================================================
 
+--Como o código roda.
 
--- define a monada de verificacao, ExceptT lida com erros
+-- define a monada de verificacao, ExceptT lida com erros e State Env Para manter e modificar o estado (Env) enquanto percorremos o código.
 type Check a = ExceptT String (State Env) a
 
+
+--runCheck: Função que executa a verificação, recebendo o estado inicial e retornando o resultado ou erro.
 runCheck :: Check a -> Env -> (Either String a, Env)
 runCheck check env = runState (runExceptT check) env
 
@@ -58,6 +64,10 @@ runCheck check env = runState (runExceptT check) env
 -- 3. FUNÇÕES AUXILIARES DE ESCOPO
 -- =============================================================================
 
+--Funções para manipular a pilha de variáveis.
+
+
+--lookupVar: Procura uma variável. Começa no escopo local (topo da pilha); se não achar, desce para os escopos anteriores até o global.
 lookupVar :: String -> Check Type
 lookupVar name = do
     env <- get
@@ -68,6 +78,7 @@ lookupVar name = do
         Just t  -> return t
         Nothing -> findInScopes rest
 
+--addVar: Adiciona uma variável no escopo atual. Dá erro se já existir nesse mesmo escopo.
 addVar :: String -> Type -> Check ()
 addVar name type_ = do
     env <- get
@@ -77,6 +88,11 @@ addVar name type_ = do
             if Map.member name current
                 then throwError $ "Variavel ja declarada neste escopo: " ++ name
                 else put $ env { varScopes = Map.insert name type_ current : rest }
+
+------------------------------
+
+--enterScope / exitScope: Usado ao entrar/sair de blocos { ... }. enterScope coloca um mapa vazio no topo da pilha; 
+--exitScope remove o topo (apagando as variáveis locais daquele bloco).
 
 enterScope :: Check ()
 enterScope = do
@@ -89,6 +105,10 @@ exitScope = do
     case varScopes env of
         [] -> throwError "Erro interno: Tentativa de fechar escopo inexistente"
         (_:rest) -> put $ env { varScopes = rest }
+
+-------------------------------
+
+--lookupFunc / lookupStruct: Busca definições de funções e structs nos mapas globais. 
 
 -- NOVO: Retorna o Esquema (Scheme) da função
 lookupFunc :: String -> Check FuncScheme
@@ -106,11 +126,12 @@ lookupStruct name = do
         Nothing -> throwError $ "Struct nao definida: " ++ name
 
 -- =============================================================================
--- 4. LÓGICA DE GENERICS 
+-- 4. LÓGICA DE GENERICS - Cérebro do polimorfismo
 -- =============================================================================
 
 -- Substitui tipos genéricos por tipos concretos
 -- Ex: instantiate (TyGeneric "T") [("T", TyInt)] -> TyInt
+-- Exemplo: Se a função retorna T e descobrimos que T = Int, esta função transforma TyGeneric "T" em TyInt
 instantiate :: Type -> Map.Map String Type -> Type
 instantiate t mappings = case t of
     TyGeneric name -> case Map.lookup name mappings of
@@ -129,6 +150,7 @@ instantiate t mappings = case t of
 
 
 -- Funcao principal de Unificacao: Descobre quem e "T" olhando para os argumentos
+-- Tenta descobrir ("inferir") quais são os tipos concretos baseando-se nos argumentos passados.
 solveGenerics :: [String] -> [Type] -> [Type] -> Either String (Map.Map String Type)
 solveGenerics generics paramTypes argTypes = 
     -- 1. Pareia (Zip) o tipo esperado com o recebido e percorre a lista acumulando o resultado no Mapa
@@ -163,6 +185,7 @@ solveGenerics generics paramTypes argTypes =
 -- =============================================================================
 -- 5. VERIFICAÇÃO DE EXPRESSÕES
 -- =============================================================================
+-- Analisa expressões que retornam valores (contas, chamadas, variáveis).
 
 checkExpr :: Expr -> Check Type
 checkExpr expr = case expr of
@@ -176,7 +199,7 @@ checkExpr expr = case expr of
     Binary op e1 e2 -> checkBinary op e1 e2
     Unary op e -> checkUnary op e
 
-    -- Chamada de Função (ATUALIZADO COM GENERICS)
+    -- Chamada de Função 
     Call name args -> do
         if name == "print" 
             then do
@@ -215,6 +238,7 @@ checkExpr expr = case expr of
 
                     _ -> throwError $ "'" ++ name ++ "' nao é uma funcao"
 
+-- ArrayAccess: Verifica se o índice é Int e se o alvo é um Array.
     ArrayAccess arr index -> do
         arrType <- checkExpr arr
         indexType <- checkExpr index
@@ -224,6 +248,7 @@ checkExpr expr = case expr of
                 TyArray innerType -> return innerType
                 _ -> throwError "Tentativa de indexar algo que nao eh um array"
 
+--FieldAccess: Verifica se a struct existe e se o campo pertence a ela.
     FieldAccess recordExpr fieldName -> do
         typeExpr <- checkExpr recordExpr
         case typeExpr of
@@ -234,6 +259,7 @@ checkExpr expr = case expr of
                     Nothing -> throwError $ "Campo '" ++ fieldName ++ "' nao existe na struct '" ++ sName ++ "'"
             _ -> throwError "Tentativa de acessar campo em algo que nao eh uma struct"
 
+-- New: Valida a alocação de arrays (o tamanho deve ser Int)
     New typeVar sizeExpr -> do
         typeSize <- checkExpr sizeExpr
         if typeSize /= TyInt
@@ -254,6 +280,7 @@ checkCompatibility expected actual =
 -- =============================================================================
 -- 6. LÓGICA DE OPERADORES
 -- =============================================================================
+--Valida operações matemáticas e lógicas.
 
 -- descobre o tipo dos operando , impede somar um numero com um booleano
 checkBinary :: BinOp -> Expr -> Expr -> Check Type
@@ -288,9 +315,12 @@ checkUnary op e = do
 -- =============================================================================
 -- 7. VERIFICAÇÃO DE STATEMENTS
 -- =============================================================================
+--Analisa comandos que executam ações (declarações, loops, ifs).
 
 checkStmt :: Stmt -> Check ()
 checkStmt stmt = case stmt of
+
+    --VarDecl: Lida com declaração de variáveis. Se o tipo for auto (TyAuto), ele infere o tipo baseado na expressão de inicialização.
     VarDecl name typeDecl maybeExpr -> do
         finalType <- case maybeExpr of
             Just expr -> do
@@ -333,6 +363,7 @@ checkStmt stmt = case stmt of
         checkBlock block
         exitScope
 
+    -- Return: Verifica se o valor retornado bate com o currentRetType armazenado no Env (o tipo de retorno da função onde estamos).
     Return maybeExpr -> do
         env <- get
         case currentRetType env of
@@ -352,6 +383,8 @@ checkStmt stmt = case stmt of
 -- 8. HELPERS E MAIN
 -- =============================================================================
 
+--checkDeclBody: Agora que todos os nomes são conhecidos, ele entra em cada função e verifica o corpo (o código dentro dela usando o passo 7 'checkStmt').
+
 checkBlock :: Block -> Check ()
 checkBlock [] = return ()
 checkBlock (s:ss) = checkStmt s >> checkBlock ss
@@ -368,6 +401,9 @@ checkProgram :: Program -> Check ()
 checkProgram decls = do
     mapM_ collectDecl decls
     mapM_ checkDeclBody decls
+
+--collectDecl: Percorre todo o arquivo e registra todas as Structs e Funções (seus nomes e assinaturas) no Env. 
+--Isso é crucial para permitir que uma função chame outra que foi definida mais abaixo no código (forward declaration).
 
 collectDecl :: TopDecl -> Check ()
 collectDecl decl = case decl of
