@@ -72,7 +72,6 @@ main = do
                             putStrLn "\n✅ SUCESSO:"
                             putStrLn "   O programa está semanticamente correto."
 
-        -- NOVO: MODO 5: Geração de Código (--codegen)
         ["--codegen", fileName] -> runCodeGen fileName
 
         -- MODO 6: Execução / Interpretador (--run ou apenas o nome do arquivo)
@@ -83,7 +82,7 @@ main = do
         _ -> printUsage
 
 -- =============================================================================
--- FUNÇÃO AUXILIAR DE GERAÇÃO DE CÓDIGO (NOVO)
+-- FUNÇÃO AUXILIAR DE GERAÇÃO DE CÓDIGO
 -- =============================================================================
 
 runCodeGen :: FilePath -> IO ()

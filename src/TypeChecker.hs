@@ -12,7 +12,6 @@ import qualified Data.Map as Map
 -- 1. ESTRUTURAS DE DADOS E AMBIENTE
 -- =============================================================================
 
--- NOVO: Esquema de Função
 -- Guarda os tipos genéricos definidos (ex: ["T"]) e a assinatura da função
 data FuncScheme = FuncScheme {
     fsGenerics :: [String], -- Lista de variáveis de tipo (ex: T, U)
@@ -48,6 +47,8 @@ emptyEnv = Env {
 -- 2. MÓNADA DE VERIFICAÇÃO
 -- =============================================================================
 
+
+-- define a monada de verificacao, ExceptT lida com erros
 type Check a = ExceptT String (State Env) a
 
 runCheck :: Check a -> Env -> (Either String a, Env)
@@ -105,7 +106,7 @@ lookupStruct name = do
         Nothing -> throwError $ "Struct nao definida: " ++ name
 
 -- =============================================================================
--- 4. LÓGICA DE GENERICS (NOVO)
+-- 4. LÓGICA DE GENERICS 
 -- =============================================================================
 
 -- Substitui tipos genéricos por tipos concretos
@@ -124,33 +125,39 @@ instantiate t mappings = case t of
         Nothing -> t
     _ -> t
 
--- Tenta descobrir os tipos concretos para os generics (Unificação Simples)
--- Ex: params=[T], args=[Int] -> T=Int
+
+
+
+-- Funcao principal de Unificacao: Descobre quem e "T" olhando para os argumentos
 solveGenerics :: [String] -> [Type] -> [Type] -> Either String (Map.Map String Type)
 solveGenerics generics paramTypes argTypes = 
+    -- 1. Pareia (Zip) o tipo esperado com o recebido e percorre a lista acumulando o resultado no Mapa
     foldM solveOne Map.empty (zip paramTypes argTypes)
   where
     solveOne currentMap (expected, actual) = case expected of
+        -- 2. Se o tipo esperado e um Generico (ex: "T"), tenta registrar o tipo Real (ex: Int) no mapa
         TyGeneric gName | gName `elem` generics -> updateMap gName actual currentMap
         TyCustom gName  | gName `elem` generics -> updateMap gName actual currentMap
         
-        -- Recursão para Arrays (T[] vs Int[])
+        -- 3. Se for Array (ex: T[]), "descasca" o array e chama recursivamente para resolver o tipo de dentro
         TyArray innerExpected -> case actual of
             TyArray innerActual -> solveOne currentMap (innerExpected, innerActual)
             _ -> Left "Esperava Array mas obteve outro tipo"
             
-        -- Tipos concretos devem bater exatamente
+        -- 4. Se for tipo fixo (Int, Bool), exige igualdade estrita. Se for diferente, e erro.
         _ -> if expected == actual 
              then Right currentMap 
              else Left $ "Tipo incompativel. Esperado " ++ show expected ++ ", dado " ++ show actual
 
-    -- CORRIGIDO: mudamos o nome do argumento de 'map' para 'mapping' para evitar warning
+    -- Funcao auxiliar para guardar a descoberta no mapa com seguranca
     updateMap gName actual mapping = case Map.lookup gName mapping of
+        -- 5. Se "T" ja foi descoberto antes, verifica se o novo tipo e igual ao anterior (Consistencia)
         Just existing -> 
             if existing == actual 
                 then Right mapping 
                 else Left $ "Conflito de inferencia para generic " ++ gName 
                         ++ ": " ++ show existing ++ " vs " ++ show actual
+        -- 6. Se e a primeira vez vendo "T", salva no mapa
         Nothing -> Right (Map.insert gName actual mapping)
 
 -- =============================================================================
@@ -248,6 +255,7 @@ checkCompatibility expected actual =
 -- 6. LÓGICA DE OPERADORES
 -- =============================================================================
 
+-- descobre o tipo dos operando , impede somar um numero com um booleano
 checkBinary :: BinOp -> Expr -> Expr -> Check Type
 checkBinary op e1 e2 = do
     t1 <- checkExpr e1
@@ -286,11 +294,11 @@ checkStmt stmt = case stmt of
     VarDecl name typeDecl maybeExpr -> do
         finalType <- case maybeExpr of
             Just expr -> do
-                typeExpr <- checkExpr expr
+                typeExpr <- checkExpr expr -- primeiro checa a expressao para depois, com o resultado, inferir o resultado - tipo da declaracao
                 case typeDecl of
-                    TyAuto -> return typeExpr -- INFERÊNCIA
+                    TyAuto -> return typeExpr -- INFERÊNCIA (TyAuto foi definido na AST e reconhece um "tipo omitido")
                     _ -> do
-                        checkCompatibility typeDecl typeExpr
+                        checkCompatibility typeDecl typeExpr  
                         return typeDecl
             Nothing -> do
                 when (typeDecl == TyAuto) $ throwError "Nao eh possivel inferir tipo sem inicializacao"
@@ -369,7 +377,7 @@ collectDecl decl = case decl of
             then throwError $ "Struct redefinida: " ++ name
             else put $ env { structEnv = Map.insert name fields (structEnv env) }
 
-    -- ATUALIZADO: Guarda os generics no FuncScheme
+    
     FuncDecl name generics params retType _ -> do
         env <- get
         if Map.member name (funcEnv env)

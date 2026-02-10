@@ -23,6 +23,11 @@ ignoredTests =
     , "test3_arrays.sl"
     , "test4_generics.sl"
     , "test_broken_comment.sl"
+    , "test_erro_condicao.sl" --caso erro intecional
+    , "test_erro_escopo.sl"
+    , "test_erro_funcao.sl"
+    , "test_erro_struct_array.sl"
+    , "test_erro_tipos.sl"
     ]
 
 main :: IO ()
