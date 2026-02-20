@@ -132,6 +132,14 @@ lookupStruct name = do
 -- Substitui tipos genéricos por tipos concretos
 -- Ex: instantiate (TyGeneric "T") [("T", TyInt)] -> TyInt
 -- Exemplo: Se a função retorna T e descobrimos que T = Int, esta função transforma TyGeneric "T" em TyInt
+
+-- forall T. T -> T
+-- identidade(5)
+-- → T = Int
+-- { "T" -> TyInt }
+-- TyFunc [TyInt] TyInt
+
+
 instantiate :: Type -> Map.Map String Type -> Type
 instantiate t mappings = case t of
     TyGeneric name -> case Map.lookup name mappings of
