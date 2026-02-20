@@ -56,7 +56,6 @@ Thumbs.db*.acn
 *.nlo
 *.nls
 *.out
-*.pdf
 *.pyg
 *.run.xml
 *.snm
@@ -114,7 +113,6 @@ build/
 *.nlo
 *.nls
 *.out
-*.pdf
 *.pyg
 *.run.xml
 *.snm

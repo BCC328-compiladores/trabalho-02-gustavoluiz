@@ -1,0 +1,431 @@
+\documentclass[12pt]{article}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{listings}
+
+\title{Trabalho Prático -- Compilador para a Linguagem SL \\ \large Relatório da Etapa 2: Análise Semântica e Interpretador}
+\author{Luiz Eduardo Fugliaro - 22.1.4014 | Gustavo Zacarias de Souza - xx.x.xxxx}
+\date{20 de Fevereiro de 2026}
+
+\begin{document}
+
+\maketitle
+
+\onehalfspacing
+
+\section{Introdução}
+
+Este relatório descreve o desenvolvimento da Etapa 2 do trabalho prático da disciplina de Compiladores, cujo objetivo foi a implementação da análise semântica e do interpretador para a linguagem SL.
+
+Conforme especificado no enunciado, esta etapa envolveu:
+\begin{itemize}
+    \item Projeto e implementação do sistema de tipos;
+    \item Implementação do analisador semântico;
+    \item Implementação do interpretador para execução de programas SL;
+    \item Verificação das regras semânticas obrigatórias da linguagem.
+\end{itemize}
+
+Este relatório apresenta o que foi implementado, o que não foi implementado e como ferramentas baseadas em modelos de linguagem foram utilizadas durante o desenvolvimento.
+
+\section{O que foi feito}
+
+\subsection{Sistema de Tipos}
+
+Foi projetado e implementado um sistema de tipos estático para a linguagem SL, contemplando:
+
+\begin{itemize}
+    \item Tipos primitivos: \texttt{int}, \texttt{float}, \texttt{bool}, \texttt{string};
+    \item Arranjos unidimensionais;
+    \item Registros (structs);
+    \item Funções com parâmetros e tipo de retorno;
+    \item Polimorfismo paramétrico (generics);
+    \item Inferência de tipos em declarações com tipo omitido.
+\end{itemize}
+
+A verificação de tipos ocorre antes da execução, garantindo que apenas programas semanticamente válidos sejam interpretados.
+
+\subsection{Analisador Semântico}
+
+Foi implementado um analisador semântico responsável por:
+
+\begin{itemize}
+    \item Controle de escopos léxicos por meio de pilha de ambientes;
+    \item Verificação de declaração única de identificadores no mesmo escopo;
+    \item Verificação de compatibilidade de tipos em operações aritméticas, relacionais e booleanas;
+    \item Verificação de número e tipos de argumentos em chamadas de função;
+    \item Verificação de acesso válido a campos de registros;
+    \item Verificação de acesso válido a elementos de arranjos;
+    \item Verificação de compatibilidade entre tipo de retorno e tipo declarado da função;
+    \item Coleta prévia de declarações para permitir chamadas antecipadas de funções.
+\end{itemize}
+
+A implementação garante que erros semânticos sejam detectados antes da execução do programa.
+
+\subsection{Suporte a Generics e Inferência de Tipos}
+
+Foi implementado suporte a polimorfismo paramétrico, permitindo a definição de funções genéricas com inferência automática dos tipos concretos a partir dos argumentos fornecidos.
+
+Além disso, foi implementado mecanismo de inferência de tipos para declarações onde o tipo é omitido, desde que haja expressão inicializadora.
+
+\subsection{Interpretador}
+
+Foi desenvolvido um interpretador para execução direta da AST gerada pelo parser.
+
+O interpretador implementa:
+
+\begin{itemize}
+    \item Execução de funções com escopo próprio;
+    \item Execução de estruturas de controle (\texttt{if}, \texttt{while});
+    \item Manipulação de arranjos com verificação de limites;
+    \item Manipulação de registros em tempo de execução;
+    \item Operações aritméticas, relacionais, booleanas e concatenação de strings;
+    \item Comando \texttt{print};
+    \item Propagação correta de comandos \texttt{return}.
+\end{itemize}
+
+A execução ocorre em um ambiente com pilha de escopos, garantindo isolamento adequado de variáveis locais.
+
+\section{O que não foi feito}
+
+Embora a maior parte dos requisitos da Etapa 2 tenha sido implementada, alguns pontos não foram completamente desenvolvidos:
+
+\begin{itemize}
+    \item O interpretador não possui implementação completa da estrutura \texttt{for};
+    \item Atribuições complexas envolvendo campos internos de structs não foram totalmente suportadas;
+    \item Inicialização literal de arranjos (por exemplo, \texttt{[1,2,3]}) não foi implementada no interpretador;
+    \item O tratamento de erros em tempo de execução utiliza abortos diretos da execução em vez de um mecanismo estruturado de exceções.
+\end{itemize}
+
+Apesar dessas limitações, todos os requisitos obrigatórios explicitamente descritos para a Etapa 2 foram atendidos.
+
+\section{Uso de Prompts e Ferramentas de IA}
+
+Durante o desenvolvimento da Etapa 2, foram utilizadas ferramentas baseadas em Modelos de Linguagem (LLMs) tanto para esclarecimento de dúvidas conceituais quanto para apoio na implementação de trechos do compilador. Conforme solicitado na especificação do trabalho, esta seção detalha os prompts realizados, os resultados obtidos e como estes foram utilizados no desenvolvimento do projeto.
+
+As consultas realizadas podem ser divididas em dois grupos:
+
+\begin{itemize}
+    \item Consultas para esclarecimento de dúvidas específicas (modelagem, arquitetura e organização do código);
+    \item Consultas para produção ou esboço inicial de implementações.
+\end{itemize}
+
+Todo código gerado foi revisado, adaptado e integrado manualmente ao projeto.
+
+\subsection{1. Planejamento Inicial da Etapa 2}
+
+\textbf{Prompt 1:}  
+Considere agora que irei prosseguir com o trabalho de implementação do compilador para a linguagem SL, após ter implementado a análise léxica e sintática. Agora, para a Etapa 2, o seguinte arquivo descreve as especificações de implementação do próximo trabalho. Analise-o e me guie para dar início.
+
+\textbf{Resultado:}  
+Análise da especificação e orientação inicial sobre como estruturar o desenvolvimento.
+
+\textbf{Utilização:}  
+Serviu como ponto de partida estratégico para organizar as tarefas da Etapa 2.
+
+\medskip
+
+\textbf{Prompt 2:}  
+Me forneça um resumo dos pontos a serem implementados e uma breve explicação deles, seguindo uma ordem de implementação lógica.
+
+\textbf{Resultado:}  
+Roteiro prático das necessidades de implementação, com breve explicação de cada passo seguindo uma ordem lógica.
+
+\textbf{Utilização:}  
+Utilizado como checklist estruturado para conduzir o desenvolvimento.
+
+\subsection{2. Implementação do TypeChecker}
+
+\textbf{Prompt 3:}  
+Me forneça a estrutura do arquivo TypeChecker com as descrições dos métodos necessários, de maneira que me guie na implementação.
+
+\textbf{Resultado:}  
+Estrutura inicial do arquivo de verificação de tipos, clareando o entendimento e agilizando o desenvolvimento.
+
+\textbf{Utilização:}  
+Base estrutural para criação do módulo TypeChecker.hs.
+
+\medskip
+
+\textbf{Prompt 4:}  
+Considerando a tabela de símbolos, a mônada de verificação, as funções auxiliares que controlam os escopos e o verificador de expressões checkExpr, como eu poderia implementar a função checkStmt para verificar comandos? Faça uma explicação da lógica apresentada.
+
+\textbf{Resultado:}  
+Explicação da lógica de verificação de comandos e proposta de implementação do método checkStmt.
+
+\textbf{Utilização:}  
+Serviu como base conceitual para implementação da verificação de comandos.
+
+\medskip
+
+\textbf{Prompt 5:}  
+Agora com checkStmt e checkExpr, o que falta para que o TypeChecker comece a checar tipos?
+
+\textbf{Resultado:}  
+Indicação da necessidade de um ponto de entrada que percorra as declarações de topo (método checkProgram).
+
+\medskip
+
+\textbf{Prompt 6:}  
+Como ficaria a implementação desse método checkProgram e como eu faria para vinculá-lo à Main do meu programa?
+
+\textbf{Resultado:}  
+Implementação sugerida do checkProgram e orientação para integração com a Main.
+
+\medskip
+
+\textbf{Prompt 7:}  
+Através deste arquivo Main.hs que eu já possuo, inclua as alterações necessárias para que o código consiga receber o comando para o verificador de tipos, mantendo a estrutura já presente.
+
+\textbf{Resultado:}  
+Arquivo Main.hs adaptado para incluir a execução do verificador de tipos.
+
+\textbf{Utilização:}  
+Integração do TypeChecker ao pipeline do compilador.
+
+\subsection{3. Construção e Validação com Testes}
+
+\textbf{Prompt 8:}  
+Baseado na especificação da linguagem SL, me forneça arquivos para que eu consiga testar a minha implementação. Também indique quais cenários o verificador deve reconhecer.
+
+\textbf{Resultado:}  
+Arquivos de teste:
+\begin{itemize}
+    \item teste\_sucesso\_completo.sl
+    \item teste\_erro\_tipos.sl
+    \item teste\_erro\_funcao.sl
+    \item teste\_erro\_escopo.sl
+    \item teste\_erro\_condicao.sl
+\end{itemize}
+
+\medskip
+
+\textbf{Prompt 9:}  
+Me forneça um arquivo que contenha um erro com struct e array.
+
+\textbf{Resultado:}  
+teste\_erro\_struct\_array.sl
+
+\medskip
+
+\textbf{Prompt 10:}  
+Agora que todos os casos de teste passaram pelo compilador, baseado no que eu já implementei, verifique se está atendendo às necessidades da Etapa 2.
+
+\textbf{Resultado:}  
+Confirmação de atendimento às especificações do TypeChecker e indicação do próximo passo: implementação do interpretador.
+
+\subsection{4. Implementação do Interpretador}
+
+\textbf{Prompt 11:}  
+Irei enviar o meu arquivo AST.hs e preciso que me forneça as necessidades de implementação do arquivo Interpreter.hs.
+
+\textbf{Resultado:}  
+Definição dos conceitos necessários:
+\begin{itemize}
+    \item Representação de valores em memória;
+    \item Ambiente de execução;
+    \item Função de avaliação como máquina de execução.
+\end{itemize}
+
+\medskip
+
+\textbf{Prompt 12:}  
+Crie uma estrutura básica desses três componentes necessários para executar uma conta simples.
+
+\textbf{Resultado:}  
+Interpreter.hs capaz de executar contas básicas (ex.: 3 + 5).
+
+\medskip
+
+\textbf{Prompt 13:}  
+Me forneça um arquivo teste com contas simples.
+
+\textbf{Resultado:}  
+teste\_execucao.sl
+
+\medskip
+
+\textbf{Prompt 14:}  
+Ainda é necessário tratar arrays e structs. Quais mudanças seriam necessárias em evalExpr e evalStmt?
+
+\textbf{Resultado:}  
+Indicação de atualização em evalExpr para leitura e criação de structs e adaptação de evalStmt para atribuições complexas.
+
+\medskip
+
+\textbf{Prompt 15:}  
+Adicione essas modificações nas minhas funções e explique o novo funcionamento.
+
+\textbf{Resultado:}  
+evalExpr e evalStmt atualizados.
+
+\medskip
+
+\textbf{Prompt 16:}  
+Me forneça um arquivo de teste que apresente estes novos casos.
+
+\textbf{Resultado:}  
+teste\_complexo.sl
+
+\medskip
+
+\textbf{Prompt 17:}  
+Me forneça outros exemplos para testar completamente o interpretador.
+
+\textbf{Resultado:}  
+\begin{itemize}
+    \item bubble\_sort.sl
+    \item fibonacci.sl
+    \item scope\_test.sl
+\end{itemize}
+
+\subsection{5. Implementação de Generics e Inferência}
+
+\textbf{Prompt 18:}  
+O que deve ser adicionado ao código para implementar generics e inferência de tipos?
+
+\textbf{Resultado:}  
+Necessidade de:
+\begin{itemize}
+    \item Alterar a AST para suportar tipos genéricos e tipos inferidos;
+    \item Implementar substituição de tipos genéricos no TypeChecker;
+    \item Implementar lógica de inferência para tipos implícitos.
+\end{itemize}
+
+\medskip
+
+\textbf{Prompt 19:}  
+Adicionei TyGeneric String e TyAuto na AST. Está correto? Falta algo?
+
+\textbf{Resultado:}  
+Indicação da necessidade de alterar FuncDecl para armazenar a lista de parâmetros genéricos.
+
+\medskip
+
+\textbf{Prompt 20:}  
+O que deve ser adicionado ao Parser?
+
+\textbf{Resultado:}  
+Leitura de:
+\begin{itemize}
+    \item Parâmetros genéricos (<T>);
+    \item Declarações com inferência (let x = ...);
+    \item Uso de tipos genéricos no código.
+\end{itemize}
+
+\medskip
+
+\textbf{Prompt 21:}  
+Aplique essas implementações no meu código, explicando cada parte.
+
+\textbf{Resultado:}  
+Parser atualizado com as novas funcionalidades.
+
+\medskip
+
+\textbf{Prompt 22:}  
+O cabal build rodou corretamente. O que posso fazer agora?
+
+\textbf{Resultado:}  
+Executar teste de inferência (teste\_inferencia.sl).
+
+\medskip
+
+\textbf{Prompt 23:}  
+Como implementar a substituição de generics?
+
+\textbf{Resultado:}  
+Criação de função auxiliar instantiate para substituir tipos genéricos por tipos concretos durante a chamada da função.
+
+\medskip
+
+\textbf{Prompt 24:}  
+Realize essas implementações no TypeChecker e explique o funcionamento.
+
+\medskip
+
+\textbf{Prompt 25:}  
+Me forneça arquivos de teste para validar generics.
+
+\textbf{Resultado:}  
+\begin{itemize}
+    \item teste\_generics\_real.sl
+    \item erro\_generics.sl
+\end{itemize}
+
+\medskip
+
+\textbf{Prompt 26:}  
+O erro\_generics falhou como esperado e o teste\_generics\_real rodou corretamente.
+
+\textbf{Resultado:}  
+Conclusão de que o Front-end (Análise Léxica e Sintática) e o Middle-end (Análise Semântica e Interpretação) estavam concluídos conforme as especificações da Etapa 2.
+
+\section{Divisão de Tarefas}
+
+A divisão de tarefas foi realizada da seguinte forma:
+
+\begin{itemize}
+    \item Gustavo: Projeto e implementação do sistema de tipos e analisador semântico;
+    \item Luiz: Implementação do interpretador e testes;
+    \item Ambos: Integração, testes finais e elaboração do relatório.
+\end{itemize}
+
+\section{Testes Automatizados do Verificador de Tipos}
+
+Esta seção detalha a suíte de testes implementada para validar as regras semânticas da linguagem SL. O foco principal é garantir que o analisador semântico identifique corretamente erros de tipagem e escopo, além de validar construções sintáticas complexas.
+
+\subsection{Resumo dos Casos de Teste}
+
+A tabela abaixo descreve os arquivos de teste utilizados e o comportamento esperado de cada um no processo de compilação.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{0.45\linewidth}@{}}
+\toprule
+\textbf{Arquivo} & \textbf{Objetivo} & \textbf{Descrição Técnica} \\ 
+\midrule
+\texttt{test\_sucesso\_completo.sl} & Sucesso & Valida structs, recursão, arrays e expressões lógicas. \\
+\texttt{test\_erro\_funcao.sl} & Erro & Captura retornos inválidos e erro no número/tipo de argumentos. \\
+\texttt{test\_erro\_escopo.sl} & Erro & Garante que variáveis declaradas dentro de blocos (\texttt{if}) não vazem para o escopo externo. \\
+\texttt{test\_erro\_tipos.sl} & Erro & Proíbe operações aritméticas entre tipos incompatíveis (\texttt{int} + \texttt{bool}). \\
+\texttt{test\_erro\_condicao.sl} & Erro & Exige estritamente tipo \texttt{bool} em estruturas de controle (\texttt{if}/\texttt{while}). \\ 
+\bottomrule
+\end{tabular}
+\caption{Resumo da bateria de testes semânticos.}
+\end{table}
+
+\subsection{Automação com Makefile}
+
+Para otimizar o fluxo de desenvolvimento, foi criado um \texttt{Makefile} que automatiza a execução do compilador sobre a suíte de testes. O comando principal utiliza o gerenciador de pacotes \texttt{cabal} para rodar o executável \texttt{sl-compiler} com a flag \texttt{--check}, que foca exclusivamente na análise semântica.
+
+
+
+\begin{lstlisting}[language=make, caption=Conteúdo do Makefile para automação de testes]
+TESTS = \
+    src/tests/test_sucesso_completo.sl \
+    src/tests/test_erro_tipos.sl \
+    src/tests/test_erro_funcao.sl \
+    src/tests/test_erro_escopo.sl \
+    src/tests/test_erro_condicao.sl
+\end{lstlisting}
+
+\subsection{Execução}
+
+Para rodar todos os testes e verificar a integridade do verificador de tipos, execute no terminal:
+
+\begin{verbatim}
+make test
+\end{verbatim}
+
+\section{Conclusão}
+
+A Etapa 2 foi concluída com sucesso, contemplando a implementação do sistema de tipos, do analisador semântico e de um interpretador funcional para a linguagem SL.
+
+O compilador nesta etapa é capaz de detectar erros semânticos antes da execução e interpretar corretamente programas válidos contendo funções, estruturas de controle, arranjos, registros e generics.
+
+Os objetivos definidos no enunciado para esta etapa foram atendidos.
+
+\end{document}
